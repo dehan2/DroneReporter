@@ -30,10 +30,10 @@ void DroneReporter::add_drone_info_table_headers()
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Status"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Group"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Battery"));
-	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Deviation"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("X_curr"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Y_curr"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Z_curr"));
+	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Deviation"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("X_target"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Y_target"));
 	m_droneInfoModel.setHeaderData(columnIndex++, Qt::Horizontal, QObject::tr("Z_target"));
@@ -61,10 +61,10 @@ void DroneReporter::update_drone_info_table()
 		QModelIndex statusIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex groupIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex batteryIndex = m_droneInfoModel.index(row, col++);
-		QModelIndex deviationIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex X_currIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex Y_currIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex Z_currIndex = m_droneInfoModel.index(row, col++);
+		QModelIndex deviationIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex X_targetIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex Y_targetIndex = m_droneInfoModel.index(row, col++);
 		QModelIndex Z_targetIndex = m_droneInfoModel.index(row, col++);
@@ -89,11 +89,14 @@ void DroneReporter::update_drone_info_table()
 		case MOVING:
 			statusStr = "Moving";
 			break;
-		case TAKEOFF:
-			statusStr = "Takeoff";
+		case GUIDED:
+			statusStr = "Guided";
 			break;
 		case LAND:
 			statusStr = "Land";
+			break;
+		case RTL:
+			statusStr = "RTL";
 			break;
 		}
 
@@ -180,7 +183,7 @@ void DroneReporter::load_port_file()
 			int port = stoi(portStr);
 			int group = stoi(groupStr);
 			m_drones.push_back(DroneInfo(ID, port, group));
-			m_mapFromportToDroneInfo[port] = &m_drones.back();
+			m_mapFromPortToID[port] = ID;
 		}
 		cout << "Port read finish" << endl;
 		portFile.close();
@@ -196,7 +199,6 @@ void DroneReporter::read_drone_info_file()
 {
 	if (!ifstream("lock.txt"))
 	{
-		cout << "Start to read" << endl;
 		ofstream lockFile("lock.txt");
 		ifstream statusFile("status.txt");
 		if (statusFile.is_open())
@@ -215,32 +217,33 @@ void DroneReporter::read_drone_info_file()
 				iss >> altStr;
 
 				int port = stoi(portStr);
-				if (m_mapFromportToDroneInfo.count(port) > 0)
+				if (m_mapFromPortToID.count(port) > 0)
 				{
-					DroneInfo* drone = m_mapFromportToDroneInfo.at(port);
+					DroneInfo& drone = m_drones.at(m_mapFromPortToID.at(port));
 
-					if (modeStr.compare("MISSION"))
-						drone->set_status(MOVING);
-					else if (modeStr.compare("LAND"))
-						drone->set_status(LAND);
-					else if (modeStr.compare("LOITER"))
-						drone->set_status(IDLE);
-					else if (modeStr.compare("GUIDED"))
-						drone->set_status(TAKEOFF);
+					if (modeStr.compare("MISSION") == 0)
+						drone.set_status(MOVING);
+					else if (modeStr.compare("LAND") == 0)
+						drone.set_status(LAND);
+					else if (modeStr.compare("LOITER") == 0)
+						drone.set_status(IDLE);
+					else if (modeStr.compare("GUIDED") == 0)
+						drone.set_status(GUIDED);
+					else if (modeStr.compare("RTL") == 0)
+						drone.set_status(RTL);
 					else
-						drone->set_status(DISCONNECT);
+						drone.set_status(DISCONNECT);
 
-					drone->set_battery_level(stoi(batteryStr));
+					drone.set_battery_level(stoi(batteryStr));
 
 					float lat = stof(latStr);
 					float lon = stof(lonStr);
 					float alt = stof(altStr);
 
 					auto& coord = translate_gps_to_coord(lat, lon);
-					drone->set_curr_coord({ coord.at(0), coord.at(1), alt });
+					drone.set_curr_coord({ coord.at(0), coord.at(1), alt });
 				}
 			}
-			cout << "Status read finish" << endl;
 			statusFile.close();
 			update_drone_info_table();
 		}

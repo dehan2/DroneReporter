@@ -131,7 +131,6 @@ def write_status_file(*drones_set):
     while True:
         if os.path.isfile('lock.txt') == False:
             lockFile = open("lock.txt", 'w')
-            print 'start writing status...'
 
             statusFile = open("status.txt", 'w')
             for drone in drones_set:
@@ -144,8 +143,7 @@ def write_status_file(*drones_set):
                 lonStr = this_drone.location.global_frame.lon
                 altStr = this_drone.location.global_frame.alt
 
-                data = str(this_port) + ' ' + str(modeStr) + ' ' + str(batteryStr) + ' ' + str(latStr) + ' ' + str(lonStr) + ' ' + str(altStr) + '\n'
-                print data
+                data = str(this_port) + ' ' + str(modeStr) + ' ' + str(batteryStr) + ' ' + str(latStr) + ' ' + str(lonStr) + ' ' + str(altStr) + '\n'       
                 statusFile.write(data)
 
             statusFile.close()

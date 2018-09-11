@@ -24,7 +24,7 @@ private:
 	QStandardItemModel m_droneInfoModel;
 	vector<pair<int, int>> m_portInfo;
 	vector<DroneInfo> m_drones;
-	map<int, DroneInfo*> m_mapFromportToDroneInfo;
+	map<int, int> m_mapFromPortToID;
 	float m_homeLat = 37.555418;
 	float m_homeLon = 127.047692;
 
